@@ -59,7 +59,6 @@ if __name__ == "__main__":
     df = imputer(df=df)
     print(df.isnull().sum())
     
-    
     cat_cols = df.select_dtypes(include="object").columns
     df[cat_cols] = df[cat_cols].astype("category")
     df = lbl_encoding(df=df)
