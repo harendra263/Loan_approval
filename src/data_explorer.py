@@ -1,5 +1,9 @@
 import pandas as pd
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+threshold = 0.8
 
 def show_missing_pct(df: pd.DataFrame) ->pd.DataFrame:
     col = df.columns.to_list()
@@ -58,11 +62,34 @@ if __name__ == "__main__":
 
     df = imputer(df=df)
     print(df.isnull().sum())
+
+    # Plotting Correlation Plot and saving it to the img directory
+
+    num_cols = df.select_dtypes(include=["float64", "int64"]).columns
+
+    corr = df[num_cols].corr()
+    # Select upper triangle of correlation matrix
+    upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool))
+
+    # Find index of feature columns with correlation greater than a threshold
+    to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+
+    # Drop features
+    df= df.drop(df[to_drop], axis=1)
+
+    # Plot the correlation heatmap
+    plt.figure(figsize=(15, 8))
+    sns.heatmap(corr, annot=True)
+    plt.savefig("Correlation.png")
+    plt.show()
+    plt.close()
+
+
     
     cat_cols = df.select_dtypes(include="object").columns
     df[cat_cols] = df[cat_cols].astype("category")
     df = lbl_encoding(df=df)
-    print(df.head())
+    print(df.head(10))
 
 
     

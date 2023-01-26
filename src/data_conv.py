@@ -1,5 +1,7 @@
 import pandas as pd
 
+"""Dividing the raw data into two parts .i.e. Train and Test"""
+
 if __name__ == "__main__":
     df = pd.read_csv("input/loan.csv", low_memory=False)
 

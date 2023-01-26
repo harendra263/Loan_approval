@@ -22,4 +22,4 @@ if __name__ == "__main__":
     df = pd.read_parquet(TRAINING_DATA)
 
     df_train = df[df.kfold.isin(FOLD_MAPPING.get(FOLD))].reset_index(drop=True)
-    df_test = df[df.kfold == FOLD].reset_index(drop=True)
+    df_valid = df[df.kfold == FOLD].reset_index(drop=True)
