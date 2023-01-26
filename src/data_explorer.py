@@ -3,7 +3,6 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-threshold = 0.8
 
 def show_missing_pct(df: pd.DataFrame) ->pd.DataFrame:
     col = df.columns.to_list()
@@ -43,6 +42,31 @@ def imputer(df: pd.DataFrame) ->pd.DataFrame:
             df.loc[:, c].fillna(df[c].mode()[0], inplace=True)
         return df
 
+def feature_selection_by_correlation(df: pd.DataFrame, threshold: int =0.8) ->pd.DataFrame:
+    num_cols = df.select_dtypes(include= ['int64', 'float64']).columns
+    corr = df[num_cols].corr()
+    # Selecting upper triangle of the correlation matrix
+    upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool_))
+    # Find index of feature columns with correlation greater than a threshold
+    to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+    # Drop features
+    df= df.drop(df[to_drop], axis=1)
+    return df
+
+
+def correlation_plot(df: pd.DataFrame) -> None:
+    print("Plot started")
+    num_cols = df.select_dtypes(include= ['int64', 'float64']).columns
+    corr = df[num_cols].corr()
+    # Plot the correlation heatmap
+    plt.figure(figsize=(15, 8))
+    sns.heatmap(corr, annot=True)
+    plt.savefig("input/Correlation.png")
+    plt.show()
+    plt.close()
+    print("Correlation image saved.")
+
+
 
 if __name__ == "__main__":
     df = pd.read_parquet("parquet_files/train.parquet")
@@ -67,25 +91,11 @@ if __name__ == "__main__":
 
     num_cols = df.select_dtypes(include=["float64", "int64"]).columns
 
-    corr = df[num_cols].corr()
-    # Select upper triangle of correlation matrix
-    upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool))
+    # Feature Selection by Correlation
 
-    # Find index of feature columns with correlation greater than a threshold
-    to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+    df = feature_selection_by_correlation(df=df)
+    correlation_plot(df=df)
 
-    # Drop features
-    df= df.drop(df[to_drop], axis=1)
-
-    # Plot the correlation heatmap
-    plt.figure(figsize=(15, 8))
-    sns.heatmap(corr, annot=True)
-    plt.savefig("Correlation.png")
-    plt.show()
-    plt.close()
-
-
-    
     cat_cols = df.select_dtypes(include="object").columns
     df[cat_cols] = df[cat_cols].astype("category")
     df = lbl_encoding(df=df)
