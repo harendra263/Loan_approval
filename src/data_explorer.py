@@ -36,11 +36,11 @@ def lbl_encoding(df: pd.DataFrame) ->pd.DataFrame:
 
 def imputer(df: pd.DataFrame) ->pd.DataFrame:
     for c in df.columns:
-        if c in df.select_dtypes(include="int").columns:
+        if c in df.select_dtypes(include=["float64", "int64"]).columns:
             df.loc[:, c].fillna(df[c].median(), inplace=True)
         elif c in df.select_dtypes(include='object').columns:
             df.loc[:, c].fillna(df[c].mode()[0], inplace=True)
-        return df
+    return df
 
 def feature_selection_by_correlation(df: pd.DataFrame, threshold: int =0.8) ->pd.DataFrame:
     num_cols = df.select_dtypes(include= ['int64', 'float64']).columns
@@ -60,7 +60,7 @@ def correlation_plot(df: pd.DataFrame) -> None:
     corr = df[num_cols].corr()
     # Plot the correlation heatmap
     plt.figure(figsize=(15, 8))
-    sns.heatmap(corr, annot=True)
+    sns.heatmap(corr, annot=True, cmap='viridis')
     plt.savefig("input/Correlation.png")
     plt.show()
     plt.close()
@@ -80,7 +80,7 @@ if __name__ == "__main__":
 
     print(get_nunique_value_from_categorical_col(df=df))
     cat_cols_to_drop = ["emp_title", "issue_d", "title", "zip_code", "addr_state", "earliest_cr_line", 
-                        "last_pymnt_d", "next_pymnt_d", "last_credit_pull_d"]
+                        "last_pymnt_d", "last_credit_pull_d"]
     df.drop(cat_cols_to_drop, axis=1, inplace=True)
     print(df.shape)
 
@@ -94,13 +94,21 @@ if __name__ == "__main__":
     # Feature Selection by Correlation
 
     df = feature_selection_by_correlation(df=df)
-    correlation_plot(df=df)
+    # correlation_plot(df=df)
 
     cat_cols = df.select_dtypes(include="object").columns
     df[cat_cols] = df[cat_cols].astype("category")
     df = lbl_encoding(df=df)
-    print(df.head(10))
 
+    var_df = variance_check(df=df).reset_index()
+    print(var_df[var_df.Variance <= 0])
+    df.drop(['policy_code', 'recoveries', 'collection_recovery_fee', 'enc_pymnt_plan',
+            'enc_hardship_flag'], axis=1, inplace=True)
+
+    print(df.shape)
+    print(df.isnull().sum())
+
+    df.to_parquet("input/train_data.parquet", index=False)
 
     
 
