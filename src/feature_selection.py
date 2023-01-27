@@ -1,7 +1,12 @@
 import pandas as pd
-from sklearn.feature_selection import SelectFromModel
-from sklearn.linear_model import Lasso, LogisticRegression
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.feature_selection import SelectFromModel, mutual_info_classif
+from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
+from statsmodels.regression.linear_model import OLS
+from statsmodels.tools.tools import add_constant
 
 
 
@@ -40,5 +45,54 @@ class FeatureSelection:
         sel.fit(X_train, y_train)
         return X_train.columns[(sel.estimator_.coef_ == 0).ravel().tolist()]
 
-    def get_correlation_matrix(self, cols: list[str]) -> None:
-        pass
+    def calculate_information_gain(self) ->pd.DataFrame:
+        X = self.dataframe.drop(self.target_col, axis=1)
+        y = self.dataframe[self.target_col]
+
+        # calculate information gain
+        info_gain = mutual_info_classif(X, y)
+
+        # Add information gain to dataframe
+        info_gain_df = pd.DataFrame({'feature': X.columns, "info_gain": info_gain})
+        # Sort the info gain dataframe
+        info_gain_df = info_gain_df.sort_values("info_gain", ascending=False)
+        return info_gain_df
+
+    def feature_selection_by_correlation(self, threshold: int =0.8) ->pd.DataFrame:
+        num_cols = self.dataframe.select_dtypes(include= ['int64', 'float64']).columns
+        corr = self.dataframe[num_cols].corr()
+        # Selecting upper triangle of the correlation matrix
+        upper = corr.where(np.triu(np.ones(corr.shape), k=1).astype(np.bool_))
+        # Find index of feature columns with correlation greater than a threshold
+        to_drop = [column for column in upper.columns if any(upper[column] > threshold)]
+        # Drop features
+        self.dataframe= self.dataframe.drop(self.dataframe[to_drop], axis=1)
+        return self.dataframe
+    
+    def correlation_plot(self, df: pd.DataFrame) -> None:
+        print("Plot started")
+        num_cols = self.dataframe.select_dtypes(include= ['int64', 'float64']).columns
+        corr = self.dataframe[num_cols].corr()
+        # Plot the correlation heatmap
+        plt.figure(figsize=(15, 8))
+        sns.heatmap(corr, annot=True, cmap='viridis')
+        plt.savefig("input/Correlation.png")
+        plt.show()
+        plt.close()
+        print("Correlation image saved.")
+
+    def forward_selection(self, significance_level=0.05) ->list[str]:
+        initial_features = self.dataframe.columns.to_list()
+        best_features = []
+        while (len(initial_features) > 0):
+            remaining_features = list(set(initial_features) - set(best_features))
+            new_pval = pd.Series(index=remaining_features)
+            for new_column in remaining_features:
+                model = OLS(self.target_col, add_constant(self.dataframe[best_features + [new_column]])).fit()
+                new_pval[new_column]= model.pvalues[new_column]
+            min_p_value = new_pval.min()
+            if min_p_value < significance_level:
+                best_features.append(new_pval.idxmin())
+            else:
+                break
+        return best_features
