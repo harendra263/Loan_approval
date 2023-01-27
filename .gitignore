@@ -109,6 +109,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+recording/
 
 # Spyder project settings
 .spyderproject
@@ -127,3 +128,10 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+
+train.parquet
+*.parquet
+*.csv
+test_data.parquet
+.DS_Store
